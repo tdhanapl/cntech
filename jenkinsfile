@@ -21,6 +21,24 @@ pipeine {
                sh  'maven clean install'
             }
         }
+        stage(uplod to nexus) {
+            steps {
+                nexusArtifactUploader artifacts: [
+                    [
+                        artifactId: 'my-app', 
+                        classifier: '', 
+                        file: 'target/my-app-1.0.0.jar', 
+                        type: 'jar'
+                    ]
+                ], credentialsId: 'dockernode', 
+                groupId: 'com.mycompany.app', 
+                nexusUrl: '192.168.43.11', 
+                nexusVersion: 'nexus3', 
+                protocol: 'http', 
+                repository: 'application-release', 
+                version: '1.0.0'
+            }
+        }
         stage('Test') {
             steps {
                 echo " disply results"
