@@ -75,7 +75,7 @@ pipeine {
             }
 
             sucess {
-                echo "display"
+                echo "display result "
             }
         }
     }     
