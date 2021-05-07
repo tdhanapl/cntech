@@ -1,7 +1,4 @@
 pipeine {
-    agent {
-        label 'agent'
-    }
     tools {
         maven "maven22"
     }
@@ -42,7 +39,7 @@ pipeine {
         stage('Test') {
             steps {
                 echo " disply results"
-                mail to: dhana@gmail.com subject: result of test 
+                mail to: dhanapal703278@gmail.com subject: result of test 
             }
         }
         stage ('Build docker image')  {
