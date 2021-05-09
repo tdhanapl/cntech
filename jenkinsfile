@@ -2,9 +2,8 @@ pipeline {
     agent any
     tools {
         maven "maven123"
-    }
+
     options {
-        timestamp
         timeout(30)
     }
     stages {
