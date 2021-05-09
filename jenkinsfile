@@ -1,4 +1,4 @@
-pipeine {
+pipeline {
     agent any
     tools {
         maven "maven123"
@@ -10,19 +10,18 @@ pipeine {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout scm 
             }
         }
-
         stage('Build') {
             steps {
-               sh  'maven clean install'
+                sh 'maven clean install'
             }
         }
-        
         stage('Test') {
             steps {
-                echo " disply results"
+                echo "display results "
             }
-        }      
+        }
+    }
 }
