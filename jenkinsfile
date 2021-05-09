@@ -1,6 +1,7 @@
 pipeine {
+    agent any
     tools {
-        maven "maven22"
+        maven "maven123"
     }
     options {
         timestamp
@@ -18,62 +19,11 @@ pipeine {
                sh  'maven clean install'
             }
         }
-        stage(uplod to nexus) {
-            steps {
-                nexusArtifactUploader artifacts: [
-                    [
-                        artifactId: 'my-app', 
-                        classifier: '', 
-                        file: 'target/my-app-1.0.0.jar', 
-                        type: 'jar'
-                    ]
-                ], credentialsId: 'dockernode', 
-                groupId: 'com.mycompany.app', 
-                nexusUrl: '192.168.43.11', 
-                nexusVersion: 'nexus3', 
-                protocol: 'http', 
-                repository: 'application-release', 
-                version: '1.0.0'
-            }
-        }
+        
         stage('Test') {
             steps {
                 echo " disply results"
                 mail to: dhanapal703278@gmail.com subject: result of test 
             }
-        }
-        stage ('Build docker image')  {
-            steps {
-                sh " docker build -t dhanapal406/web-app ."
-            }
-        }
-        stage ('Push to dockerhub') {
-            steps {
-                withCrentials([string(credentialsld: 'DOCKER_HUB_CREDENTIALS': variable: 'DOCKER_HUB_CREDENTIALS')]) {
-                    sh "docker login -u dhanapal406 -p ${DOCKER_HUB_CREDENTIALS}"
-                }
-                sh "docker push dhanapal406/web-app"
-            }
-        }
-        stage ("Deploy application in the cluster k8s") {
-            steps {
-                KubernetsDeploy(
-                    configs: app.yml,
-                    kubeconfig0d: "K0BENETES_CLUSTER_CONFIG',
-                    enableconfigSubstitution:true
-                 )
-            }
-        }
-    }
-    post {
-        always {
-            failure {
-                echo " display error"
-            }
-
-            sucess {
-                echo "display result "
-            }
-        }
-    }     
+        }      
 }
