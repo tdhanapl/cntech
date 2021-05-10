@@ -1,26 +1,82 @@
-pipeline {
-    agent any
+pipeine {
+    agent {
+        label 'agent'
+    }
     tools {
-        maven "maven123"
+        maven "maven22"
     }
     options {
+        timestamp
         timeout(30)
     }
     stages {
         stage('Checkout') {
             steps {
-                checkout scm 
+                checkout scm
             }
         }
+
         stage('Build') {
             steps {
-                sh 'mvn clean install'
+               sh  'maven clean install'
             }
         }
         stage('Test') {
             steps {
-                echo "display results "
+                echo " disply results"
+                mail to: dhana@gmail.com subject: result of test 
+            }
+        }
+         stage('upload jarfile to nexus') {
+            steps {
+                nexusArtifactUploader artifacts: [
+                    [
+                        artifactId: 'my-app', 
+                        classifier: '', 
+                        file: 'target/my-app-1.0.0.jar', 
+                        type: 'jar'
+                    ]
+                ], credentialsId: 'dockernode', 
+                groupId: 'com.mycompany.app', 
+                nexusUrl: '192.168.43.11', 
+                nexusVersion: 'nexus3', 
+                protocol: 'http', 
+                repository: 'application-release', 
+                version: '1.0.0'
+            }
+        }
+        stage ('Build docker image')  {
+            steps {
+                sh " docker build -t dhanapal406/web-app ."
+            }
+        }
+        stage ('Push to dockerhub') {
+            steps {
+                withCrentials([string(credentialsld: 'DOCKER_HUB_CREDENTIALS': variable: 'DOCKER_HUB_CREDENTIALS')]) {
+                    sh "docker login -u dhanapal406 -p ${DOCKER_HUB_CREDENTIALS}"
+                }
+                sh "docker push dhanapal406/web-app"
+            }
+        }
+        stage ("Deploy application in the cluster k8s") {
+            steps {
+                KubernetsDeploy(
+                    configs: app.yml,
+                    kubeconfig0d: "K0BENETES_CLUSTER_CONFIG',
+                    enableconfigSubstitution:true
+                 )
             }
         }
     }
+    post {
+        always {
+            failure {
+                echo " display error"
+            }
+
+            sucess {
+                echo "display"
+            }
+        }
+    }     
 }
