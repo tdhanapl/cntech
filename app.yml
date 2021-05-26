@@ -11,12 +11,12 @@ spec:
     spec:
       containers:
       - name: web-app
-        image: dhanapal406/web-app
+        image: dhanapal406/tomcat-37:latest
         ports:
           - containerPort: 80
         volumeMounts:
         - name: indexdata
-          mountPath: /usr/local/apache2/htdocs
+          mountPath: /usr/local/tomcat/webapps/ROOT
       volumes:
       - name: indexdata
         hostPath:
