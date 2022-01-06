@@ -2,9 +2,7 @@ pipeline {
     environment {
         DOCKER_LOGIN= credentials('docker_login')
     }
-    agent  {
-      label 'dockernode'
-    }
+    agent  any
     tools {
         maven "maven123"
     }
