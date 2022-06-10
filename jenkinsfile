@@ -1,63 +1,116 @@
-pipeline {
-    environment {
-        DOCKER_LOGIN= credentials('docker_login')
-    }
-    agent  any
-    tools {
-        maven "maven123"
+pipeline{
+    agent none
+	tools {
+        maven 'maven123'
     }
     options {
-        timeout(30)
+        //discardbuilds 
+        buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '10', daysToKeepStr: '5', numToKeepStr: '5')
+        timeout(activity: true, time: 40)
+        retry(2)
+        timestamps()
+        warnError('Error messages')
     }
-    stages {
-        stage('Checkout') {
-            steps {
-                checkout scm 
+    environment {
+        remote_server_ip = "10.10.1.173 "
+        remote_username = "root"
+        DOCKER_LOGIN = credentials('docker_login')
+    }
+    stages{
+        stage ('Checkout and Build') {
+            agent {
+                docker {
+                    image 'dhanapal406/jenkins_java_git_maven-3.8.5'
+                    label 'docker-node'
+                    
+                }
+                
+            }
+            steps{
+                git 'https://github.com/dhanapal703278/tomcat_maven_app.git'
+                sh "mvn --version"
+                sh "mvn clean install -DskipTests" //DskipTests-it skip tests in this stage
             }
         }
-        stage('Build') {
+        stage('Test') {
+            agent {
+                docker {
+                    image 'dhanapal406/jenkins_java_git_maven-3.8.5'
+                    label 'docker-node'
+                    
+                }
+                
+            }
             steps {
-                sh 'mvn clean install'
+                sh "mvn test" //here we are running the tests in this stage
+                junit allowEmptyResults: true, testResults: 'target/surefire-reports-/*.xml'
             }
         }
-        stage('upload jarfile to nexus') {
-            steps {
-                nexusArtifactUploader artifacts: [
-                    [
-                        artifactId: 'my-app', 
-                        classifier: '', 
-                        file: 'target/my-app-1.0.0.jar', 
-                        type: 'jar'
-                    ]
-                ], credentialsId: 'dockernode', 
-                groupId: 'com.mycompany.app', 
-                nexusUrl: '192.168.43.11', 
-                nexusVersion: 'nexus3', 
-                protocol: 'http', 
-                repository: 'application-release', 
-                version: '1.0.0'
+        stage('work for remote server from jenkins') {
+            agent {
+                label 'docker-node'
             }
+            steps {
+                sshagent(['sshagent-scp']) {
+                    sh """
+                    ssh  -o StrictHostKeyChecking=no  $remote_username@$remote_server_ip  mkdir /opt/jenkins88 ;rm -rf ~/dhana* ; touch ~/dhanafile90 ; rm -rf /opt/jenkins80   
+                    ssh  -o StrictHostKeyChecking=no  $remote_username@$remote_server_ip cat /etc/sudoers
+                    """ 
+                    
+                }
+                
+            }
+        }
+        /*
+        stage("build & SonarQube analysis") {
+            agent any
+            steps {
+                withSonarQubeEnv('My SonarQube Server') {
+                    sh 'mvn clean package sonar:sonar'
+                    
+                } 
+            }
+        }
+        stage("Quality Gate") {
+            agent any
+            steps {
+              timeout(time: 1, unit: 'HOURS') {
+                waitForQualityGate abortPipeline: true
+              }
+            }
+        }
+        */
+        stage('copy jar or war from master to agent') {
+            agent {
+                label 'docker-node'
+            }
+            steps {
+                //if we  build is run on server and deploy in another server for it requried jar or war
+                sshagent(['sshagent-scp']) {
+                    /*<packaging>jar</packaging>
+                    <version>1.0-SNAPSHOT</version>
+                    <name>my-app</name>
+                    above are in pom.xml
+					-o StrictHostKeyChecking=no  is do not hostkey check promot for yes or no while copying file
+					*/
+                    sh " scp -o StrictHostKeyChecking=no  target/java-tomcat-maven-example.war root@10.10.1.173:/opt/pipeline-repo/"
+                }
+            }
+                
         }
         stage('create Image') {
+            agent {
+                label 'docker-node'
+            }
             steps {
                 sh """
                     docker build -t dhanapal406/tomcat-$BUILD_NUMBER .
                     docker login -u $DOCKER_LOGIN_USR -p $DOCKER_LOGIN_PSW
                     docker push dhanapal406/tomcat-$BUILD_NUMBER
-                    docker run -itd -p 8080:8080 -v /dhana:/opt dhanapal406/tomcat-$BUILD_NUMBER
+                    docker run -itd -p 8080:8080 dhanapal406/tomcat-$BUILD_NUMBER
                 """
             }
         }
-        stage('Test') {
-            steps {
-                sh "mvn test"
-                junit allowEmptyResults: true, checksName: 'Tests', testResults: 'target/surefire-reports/*.xml'
-            }
-        }
-        stage('Post tasks') {
-            steps {
-                sh " echo send an email"
-            }
-        }
+        
     }
 }
