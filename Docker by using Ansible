@@ -1,0 +1,66 @@
+#install docker and run container using ansible
+# Configuration of yum for Docker and Installing Docker :
+- hosts: all
+  tasks:
+  - name: Setting up yum for Docker
+    yum_repository:
+     name: docker
+     description: DOCKER YUM repo
+     file: docker_repo
+     baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+     enabled: 1
+     gpgcheck: 1
+     gpgkey: https://download.docker.com/linux/centos/gpg
+  - name: Installing Docker
+    command: yum install docker-ce --nobest -y
+# Start and enable Docker service :
+  - name: Start docker service
+    service:
+     name: docker
+     state: started
+     enabled: yes
+
+  - name: Install python
+    package:
+     name: python3
+     state: present
+
+  - name: Install docker-py
+    pip:
+     name: docker-py
+  
+# Pulling the custom httpd server image from the Docker Hub
+  - name: Pull raktim00/httpd-server image
+    community.general.docker_image:
+     name: raktim00/httpd-server
+     source: pull
+
+  - name: Create a directory if it does not exist
+    file:
+     path: /etc/http_files
+     state: directory
+# Running the httpd container :
+   - name: Create a httpd server container
+    community.general.docker_container:
+     name: webserver
+     image: raktim00/httpd-server
+     ports:
+      - "8085:80"
+     volumes:
+      - /etc/http_files/:/var/www/html
+
+# Copy the html code in /var/www/html directory  
+   - name: Deploying own html file
+    copy:
+     content: "Hello World, Welcome to my website, running inside docker container created by my own custom docker image"
+     dest: /etc/http_files/hello.html
+
+  - name: Stop firewalld.
+    service:
+     name: firewalld
+     state: stopped
+
+
+
+           
+      
